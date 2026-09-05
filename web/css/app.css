@@ -301,10 +301,10 @@ body {
 }
 
 .panel-result {
-  padding: 1rem 1.1rem 1.1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--panel-2) 70%, transparent);
+  padding: 0.35rem 0.15rem 0.35rem 0.35rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   animation-delay: 0.12s;
   min-height: 0;
 }
@@ -662,16 +662,18 @@ body {
 .result-toolbar h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 .action-btn {
   appearance: none;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--panel-2) 80%, transparent);
+  background: transparent;
   color: var(--accent);
   font-family: var(--font-display);
   font-size: 0.88rem;
@@ -679,20 +681,19 @@ body {
   letter-spacing: 0.01em;
   cursor: pointer;
   min-height: 2.4rem;
-  padding: 0.45rem 0.85rem;
+  padding: 0.45rem 0.7rem;
   touch-action: manipulation;
-  transition: background 0.2s var(--ease), border-color 0.2s var(--ease), color 0.2s var(--ease);
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
 }
 
 .action-btn:hover,
 .action-btn:focus-visible {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   outline: none;
 }
 
 .action-btn:active {
-  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .action-btn:disabled {
@@ -712,12 +713,12 @@ body {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding-right: 0.35rem;
+  padding-right: 0.2rem;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: var(--font-body);
-  font-size: 1.02rem;
-  line-height: 1.65;
+  font-size: 1.12rem;
+  line-height: 1.7;
   color: var(--ink);
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent) 35%, transparent) transparent;
@@ -885,7 +886,7 @@ body {
 
   .panel-result {
     min-height: 0;
-    padding: 1rem;
+    padding: 0.25rem 0;
   }
 
   #wave {
@@ -1042,8 +1043,7 @@ body {
   }
 
   .panel-result {
-    border-radius: var(--radius);
-    padding: 0.85rem;
+    padding: 0.15rem 0;
     min-height: 0;
   }
 
