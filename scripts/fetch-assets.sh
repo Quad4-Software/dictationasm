@@ -18,11 +18,11 @@ download() {
   curl -L --fail --retry 5 --retry-delay 2 -o "$dest" "$url"
 }
 
-download "https://cdn.jsdelivr.net/fontsource/fonts/syne@5.2.5/latin-700-normal.woff2" \
-  "$FONT_DIR/syne-700.woff2"
-download "https://cdn.jsdelivr.net/fontsource/fonts/source-sans-3@5.2.5/latin-400-normal.woff2" \
-  "$FONT_DIR/source-sans-400.woff2"
-download "https://cdn.jsdelivr.net/fontsource/fonts/source-sans-3@5.2.5/latin-600-normal.woff2" \
-  "$FONT_DIR/source-sans-600.woff2"
+download "https://cdn.jsdelivr.net/fontsource/fonts/outfit@5.2.5/latin-700-normal.woff2" \
+  "$FONT_DIR/outfit-700.woff2"
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/latin-400-normal.woff2" \
+  "$FONT_DIR/ibm-plex-sans-400.woff2"
+download "https://cdn.jsdelivr.net/fontsource/fonts/ibm-plex-sans@5.2.5/latin-600-normal.woff2" \
+  "$FONT_DIR/ibm-plex-sans-600.woff2"
 
 echo "offline fonts ready"

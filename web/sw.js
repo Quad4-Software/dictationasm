@@ -36,9 +36,9 @@ const PRECACHE_REQUIRED = [
   '/icons/icon-512.png',
   '/icons/icon-maskable-192.png',
   '/icons/icon-maskable-512.png',
-  '/fonts/syne-700.woff2',
-  '/fonts/source-sans-400.woff2',
-  '/fonts/source-sans-600.woff2',
+  '/fonts/outfit-700.woff2',
+  '/fonts/ibm-plex-sans-400.woff2',
+  '/fonts/ibm-plex-sans-600.woff2',
 ];
 
 /** Runtime extras. Skip quietly when not shipped (e.g. before Pages fetch). */
