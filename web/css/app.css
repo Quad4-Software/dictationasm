@@ -332,7 +332,7 @@ body {
 #wave {
   display: block;
   width: 100%;
-  height: auto;
+  height: 120px;
   max-height: 120px;
 }
 
@@ -932,7 +932,7 @@ body {
     max-width: 100%;
     height: 100dvh;
     padding-top: calc(var(--chrome-h) + 0.35rem + var(--safe-top));
-    padding-bottom: calc(var(--dock-h) + 0.35rem);
+    padding-bottom: calc(0.55rem + var(--safe-bottom));
     gap: 0.65rem;
   }
 
@@ -995,19 +995,19 @@ body {
   }
 
   .action-dock {
-    position: fixed;
-    left: 0;
-    right: 0;
+    position: sticky;
+    left: auto;
+    right: auto;
     bottom: 0;
     top: auto;
     z-index: 12;
-    margin: 0;
+    margin: 0.35rem -0.85rem -0.85rem;
     padding: var(--dock-pad-y) max(var(--dock-pad-x), var(--safe-left)) calc(var(--dock-pad-y) + var(--safe-bottom)) max(var(--dock-pad-x), var(--safe-right));
     border: 0;
     border-top: 1px solid var(--line);
-    border-radius: 0;
+    border-radius: 0 0 var(--radius) var(--radius);
     background: color-mix(in srgb, var(--panel) 96%, black);
-    box-shadow: 0 -12px 32px color-mix(in srgb, black 42%, transparent);
+    box-shadow: 0 -8px 24px color-mix(in srgb, black 28%, transparent);
     backdrop-filter: blur(16px);
   }
 
