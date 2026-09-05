@@ -35,7 +35,7 @@ export const VAD_DEFAULTS = {
   /** Hard cut so a single utterance stays inside the Moonshine window. */
   maxUtteranceMs: 28000,
   /** How often a live partial is emitted while speech continues. */
-  partialIntervalMs: 500,
+  partialIntervalMs: 900,
   /** Shortest utterance worth transcribing as a partial. */
   minPartialMs: 400,
 };

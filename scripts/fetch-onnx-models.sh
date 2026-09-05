@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Fetch Moonshine ONNX assets for in-browser dictation.
-# WebGPU uses fp32 encoder + q4 merged decoder, WASM uses fp32 encoder + q8 decoder.
+# WebGPU uses q4 encoder + q4 decoder. WASM uses q8 encoder + q8 decoder
+# (falls back to fp32 encoder) when a dtype is unsupported.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -47,6 +48,8 @@ fetch_model() {
 	download "$base/tokenizer_config.json" "$dir/tokenizer_config.json"
 	download "$base/preprocessor_config.json" "$dir/preprocessor_config.json"
 	download "$base/onnx/encoder_model.onnx" "$dir/onnx/encoder_model.onnx"
+	download "$base/onnx/encoder_model_quantized.onnx" "$dir/onnx/encoder_model_quantized.onnx"
+	download "$base/onnx/encoder_model_q4.onnx" "$dir/onnx/encoder_model_q4.onnx"
 	download "$base/onnx/decoder_model_merged_q4.onnx" "$dir/onnx/decoder_model_merged_q4.onnx"
 	download "$base/onnx/decoder_model_merged_quantized.onnx" "$dir/onnx/decoder_model_merged_quantized.onnx"
 

@@ -18,7 +18,16 @@ export async function probeWebGPU() {
       return false;
     }
     const adapter = await navigator.gpu.requestAdapter();
-    return !!adapter;
+    if (!adapter) {
+      return false;
+    }
+    const device = await adapter.requestDevice();
+    try {
+      device.destroy?.();
+    } catch {
+      /* ignore */
+    }
+    return true;
   } catch {
     return false;
   }
@@ -118,12 +127,18 @@ export function createMoonshineEngine(device) {
       vadReady = true;
     },
 
-    async vadProbe(pcm) {
+    async vadProbe(pcm, opts = {}) {
       if (!vadReady) {
         throw new Error('Voice detector is not ready.');
       }
       const copy = pcm instanceof Float32Array ? pcm.slice() : new Float32Array(0);
-      const msg = await call('vad-probe', { pcm: copy, keepState: true }, undefined, [copy.buffer]);
+      const stride = typeof opts.stride === 'number' ? opts.stride : 1;
+      const msg = await call(
+        'vad-probe',
+        { pcm: copy, keepState: opts.keepState !== false, stride },
+        undefined,
+        [copy.buffer],
+      );
       return msg.probs instanceof Float32Array ? msg.probs : new Float32Array(0);
     },
 

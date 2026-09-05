@@ -1,7 +1,6 @@
 /**
  * Web Worker that runs Moonshine ASR and Silero VAD with transformers.js.
- * Both models share one inference chain because transformers.js does not
- * support simultaneous inference on the same backend.
+ * Both models share one ORT backend, so calls are serialized per model type.
  */
 
 import { AutoModel, Tensor, pipeline, env } from '/vendor/transformers/transformers.min.js';
@@ -12,21 +11,40 @@ env.useBrowserCache = true;
 env.localModelPath = '/models/onnx/';
 env.backends.onnx.wasm.wasmPaths = '/vendor/transformers/';
 
+if (typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated) {
+  const cores = typeof navigator !== 'undefined' && navigator.hardwareConcurrency
+    ? navigator.hardwareConcurrency
+    : 4;
+  env.backends.onnx.wasm.numThreads = Math.max(2, Math.min(8, cores));
+}
+
 const SAMPLE_RATE = 16000;
 const VAD_FRAME_SAMPLES = 512;
 const VAD_STATE_SHAPE = [2, 1, 128];
 const VAD_STATE_SIZE = 2 * 1 * 128;
+const WARMUP_SAMPLES = Math.round(SAMPLE_RATE * 0.25);
 
-/** Decoder precision per backend. The encoder stays fp32 in both cases. */
-const DTYPE_BY_DEVICE = {
-  webgpu: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
-  wasm: { encoder_model: 'fp32', decoder_model_merged: 'q8' },
+/**
+ * Prefer quantized weights. Cascades below fall back when a dtype is missing
+ * or unsupported on the current ORT backend.
+ */
+const DTYPE_ATTEMPTS = {
+  webgpu: [
+    { encoder_model: 'q4', decoder_model_merged: 'q4' },
+    { encoder_model: 'fp32', decoder_model_merged: 'q4' },
+  ],
+  wasm: [
+    { encoder_model: 'q8', decoder_model_merged: 'q8' },
+    { encoder_model: 'fp32', decoder_model_merged: 'q8' },
+  ],
 };
 
 /** @type {any} */
 let asr = null;
 /** @type {string} */
 let loadedId = '';
+/** @type {string} */
+let loadedDevice = '';
 /** @type {any} */
 let sileroVad = null;
 /** @type {any} */
@@ -64,40 +82,70 @@ function freshVadState() {
 }
 
 /**
+ * @param {number} pcmLength
+ * @returns {number}
+ */
+function maxNewTokensFor(pcmLength) {
+  const sec = pcmLength / SAMPLE_RATE;
+  return Math.max(16, Math.min(224, Math.ceil(sec * 8) + 8));
+}
+
+/**
  * @param {number} id
  * @param {string} onnxId
  * @param {string} device
  */
 async function loadASR(id, onnxId, device) {
-  if (asr && loadedId === onnxId) {
-    post({ id, type: 'loaded', onnxId });
+  if (asr && loadedId === onnxId && loadedDevice === device) {
+    post({ id, type: 'loaded', onnxId, device });
     return;
   }
   post({ id, type: 'progress', status: 'loading moonshine', progress: 0.05 });
-  asr = await pipeline('automatic-speech-recognition', onnxId, {
-    device,
-    dtype: DTYPE_BY_DEVICE[device] || DTYPE_BY_DEVICE.wasm,
-    progress_callback: (p) => {
-      const status = p && p.status ? String(p.status) : 'loading';
-      let progress;
-      if (typeof p?.progress === 'number') {
-        progress = Math.min(0.9, p.progress / 100);
-      } else if (status === 'done') {
-        progress = 0.9;
-      } else {
-        return;
-      }
-      if (status === 'progress' && progress < 0.9) {
-        return;
-      }
-      post({ id, type: 'progress', status, progress, file: p?.file });
-    },
-  });
-  loadedId = onnxId;
-  post({ id, type: 'progress', status: 'warming up', progress: 0.95 });
-  // One pass over silence compiles the WebGPU shaders before the mic opens.
-  await asr(new Float32Array(SAMPLE_RATE));
-  post({ id, type: 'loaded', onnxId });
+  const attempts = DTYPE_ATTEMPTS[device] || DTYPE_ATTEMPTS.wasm;
+  let lastErr = null;
+  asr = null;
+  for (const dtype of attempts) {
+    try {
+      asr = await pipeline('automatic-speech-recognition', onnxId, {
+        device,
+        dtype,
+        progress_callback: (p) => {
+          const status = p && p.status ? String(p.status) : 'loading';
+          let progress;
+          if (typeof p?.progress === 'number') {
+            progress = Math.min(0.9, p.progress / 100);
+          } else if (status === 'done') {
+            progress = 0.9;
+          } else {
+            return;
+          }
+          if (status === 'progress' && progress < 0.9) {
+            return;
+          }
+          post({ id, type: 'progress', status, progress, file: p?.file });
+        },
+      });
+      loadedId = onnxId;
+      loadedDevice = device;
+      post({ id, type: 'progress', status: 'warming up', progress: 0.95 });
+      await asr(new Float32Array(WARMUP_SAMPLES));
+      post({
+        id,
+        type: 'loaded',
+        onnxId,
+        device,
+        dtype: `${dtype.encoder_model}/${dtype.decoder_model_merged}`,
+      });
+      return;
+    } catch (err) {
+      lastErr = err;
+      console.warn('moonshine load attempt failed', device, dtype, err);
+      asr = null;
+      loadedId = '';
+      loadedDevice = '';
+    }
+  }
+  throw lastErr || new Error('Could not load Moonshine.');
 }
 
 /**
@@ -111,7 +159,6 @@ async function loadVad(id, vadId) {
   }
   post({ id, type: 'progress', status: 'loading vad', progress: 0.05 });
   sileroVad = await AutoModel.from_pretrained(vadId, {
-    // The Silero repo ships no config.json, so hand transformers.js one inline.
     config: { model_type: 'custom' },
     dtype: 'fp32',
   });
@@ -121,24 +168,32 @@ async function loadVad(id, vadId) {
 }
 
 /**
- * Score every whole 512-sample frame in pcm and return one probability each.
+ * Score 512-sample frames. stride > 1 reuses the last scored probability for
+ * skipped frames so offline segmentation stays cheap without changing the
+ * sample-aligned state machine in vad.js.
  * @param {Float32Array} pcm
  * @param {boolean} keepState
+ * @param {number} stride
  * @returns {Promise<Float32Array>}
  */
-async function vadProbabilities(pcm, keepState) {
+async function vadProbabilities(pcm, keepState, stride) {
   const frames = Math.floor(pcm.length / VAD_FRAME_SAMPLES);
   const out = new Float32Array(frames);
   if (frames === 0) {
     return out;
   }
+  const step = Math.max(1, Math.min(4, stride | 0 || 1));
   let state = keepState ? vadState : freshVadState();
+  let lastProb = 0;
   for (let i = 0; i < frames; i++) {
-    const frame = pcm.subarray(i * VAD_FRAME_SAMPLES, (i + 1) * VAD_FRAME_SAMPLES);
-    const input = new Tensor('float32', frame, [1, frame.length]);
-    const { stateN, output } = await sileroVad({ input, sr: vadSampleRate, state });
-    state = stateN;
-    out[i] = Number(output.data[0]);
+    if (i % step === 0) {
+      const frame = pcm.subarray(i * VAD_FRAME_SAMPLES, (i + 1) * VAD_FRAME_SAMPLES);
+      const input = new Tensor('float32', frame, [1, frame.length]);
+      const { stateN, output } = await sileroVad({ input, sr: vadSampleRate, state });
+      state = stateN;
+      lastProb = Number(output.data[0]);
+    }
+    out[i] = lastProb;
   }
   if (keepState) {
     vadState = state;
@@ -191,7 +246,8 @@ self.onmessage = async (ev) => {
       if (!(pcm instanceof Float32Array)) {
         throw new Error('Bad VAD frame.');
       }
-      const probs = await queued(() => vadProbabilities(pcm, msg.keepState !== false));
+      const stride = typeof msg.stride === 'number' ? msg.stride : 1;
+      const probs = await queued(() => vadProbabilities(pcm, msg.keepState !== false, stride));
       post({ id, type: 'vad-result', probs }, [probs.buffer]);
       return;
     }
@@ -213,7 +269,11 @@ self.onmessage = async (ev) => {
         throw new Error('No sound found.');
       }
       post({ id, type: 'progress', status: 'transcribing', progress: 0.1 });
-      const raw = await queued(() => asr(pcm));
+      const maxNew = maxNewTokensFor(pcm.length);
+      const raw = await queued(() => asr(pcm, {
+        max_new_tokens: maxNew,
+        return_timestamps: false,
+      }));
       post({ id, type: 'progress', status: 'done', progress: 1 });
       post({ id, type: 'result', text: resultText(raw) });
       return;
@@ -225,6 +285,7 @@ self.onmessage = async (ev) => {
       vadSampleRate = null;
       vadState = null;
       loadedId = '';
+      loadedDevice = '';
       post({ id, type: 'disposed' });
       return;
     }

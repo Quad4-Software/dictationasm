@@ -35,7 +35,7 @@ export function createAutoEngine() {
    * @param {(ev: any) => void} [onProgress]
    * @param {boolean} [permanent]
    */
-  async function useWasm(model, onProgress, permanent = true) {
+  async function useWasm(model, onProgress, permanent = false) {
     disposeActive();
     active = createMoonshineEngine('wasm');
     backend = 'WASM';
@@ -80,7 +80,7 @@ export function createAutoEngine() {
         await active.load(model, onProgress);
       } catch (err) {
         console.warn('WebGPU load failed, falling back to WASM', err);
-        await useWasm(model, onProgress, true);
+        await useWasm(model, onProgress, false);
       }
     },
 
@@ -112,7 +112,7 @@ export function createAutoEngine() {
       } catch (err) {
         if (backend === 'WebGPU' && lastModel) {
           console.warn('WebGPU dictate failed, falling back to WASM', err);
-          await useWasm(lastModel, opts.onProgress);
+          await useWasm(lastModel, opts.onProgress, false);
           return active.dictate(audio, opts);
         }
         throw err;

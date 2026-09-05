@@ -47,6 +47,9 @@ const PRECACHE_OPTIONAL = [
   '/vendor/transformers/ort-wasm-simd-threaded.jsep.mjs',
   '/vendor/transformers/ort-wasm-simd-threaded.jsep.wasm',
   '/models/onnx/silero-vad/onnx/model.onnx',
+  '/models/onnx/moonshine-tiny-ONNX/onnx/encoder_model_quantized.onnx',
+  '/models/onnx/moonshine-tiny-ONNX/onnx/encoder_model_q4.onnx',
+  '/models/onnx/moonshine-tiny-ONNX/onnx/decoder_model_merged_quantized.onnx',
 ];
 
 self.addEventListener('install', (event) => {

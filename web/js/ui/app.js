@@ -15,10 +15,16 @@ registerEngine('moonshine-wasm', createMoonshineWasmEngine);
 registerEngine('auto', createAutoEngine);
 
 /** Longest utterance handed to Moonshine in one pass. */
-const MAX_UTTERANCE_MS = 25000;
+const MAX_UTTERANCE_MS = 18000;
+
+/** Cap live partial ASR to the newest window so growing utterances stay cheap. */
+const PARTIAL_MAX_SAMPLES = TARGET_SAMPLE_RATE * 6;
 
 /** Slice size used when replaying an uploaded file through the detector. */
 const OFFLINE_VAD_SLICE = TARGET_SAMPLE_RATE * 10;
+
+/** Score every Nth Silero frame when segmenting files. */
+const OFFLINE_VAD_STRIDE = 2;
 
 /**
  * Wire the page UI.
@@ -99,6 +105,8 @@ export async function bootApp() {
   /** @type {HTMLElement | null} */
   let partialEl = null;
   let sessionStart = 0;
+  /** @type {{ vadMs?: number, asrMs?: number } | null} */
+  let sessionTiming = null;
 
   els.transcript.addEventListener('click', (ev) => {
     const target = /** @type {HTMLElement} */ (ev.target);
@@ -300,7 +308,10 @@ export async function bootApp() {
         `${m.path}/tokenizer_config.json`,
         `${m.path}/preprocessor_config.json`,
         `${m.path}/onnx/encoder_model.onnx`,
+        `${m.path}/onnx/encoder_model_quantized.onnx`,
+        `${m.path}/onnx/encoder_model_q4.onnx`,
         `${m.path}/onnx/decoder_model_merged_q4.onnx`,
+        `${m.path}/onnx/decoder_model_merged_quantized.onnx`,
       );
     };
     addModel(model);
@@ -410,7 +421,11 @@ export async function bootApp() {
         if (job.id !== openUtterance || !engine) {
           continue;
         }
-        const result = await engine.dictate(job.pcm, { returnTimestamps: false });
+        let pcm = job.pcm;
+        if (pcm.length > PARTIAL_MAX_SAMPLES) {
+          pcm = pcm.subarray(pcm.length - PARTIAL_MAX_SAMPLES);
+        }
+        const result = await engine.dictate(pcm, { returnTimestamps: false });
         if (job.id !== openUtterance || !recording) {
           continue;
         }
@@ -597,7 +612,19 @@ export async function bootApp() {
     els.transcript.classList.remove('is-live');
     hideProgress();
     els.meta.hidden = false;
-    els.meta.textContent = `${seconds.toFixed(1)}s audio in ${(ms / 1000).toFixed(1)}s (${rtf.toFixed(2)}x) using ${formatModelMeta(selectedModel())}`;
+    let detail = `${seconds.toFixed(1)}s audio in ${(ms / 1000).toFixed(2)}s (${rtf.toFixed(3)}x) using ${formatModelMeta(selectedModel())}`;
+    if (sessionTiming && (sessionTiming.vadMs != null || sessionTiming.asrMs != null)) {
+      const bits = [];
+      if (sessionTiming.vadMs != null) {
+        bits.push(`vad ${(sessionTiming.vadMs / 1000).toFixed(2)}s`);
+      }
+      if (sessionTiming.asrMs != null) {
+        bits.push(`asr ${(sessionTiming.asrMs / 1000).toFixed(2)}s`);
+      }
+      detail += ` · ${bits.join(' · ')}`;
+    }
+    els.meta.textContent = detail;
+    sessionTiming = null;
     setStatus('Done. Still just on this device.');
     els.status.classList.add('is-ok');
     updateActions(!!(lastResult && lastResult.text));
@@ -682,6 +709,7 @@ export async function bootApp() {
     const seconds = pcm.length / TARGET_SAMPLE_RATE;
     const started = performance.now();
     sessionStart = started;
+    sessionTiming = {};
     lastPCM = pcm;
     stopPlayback();
     wave.setLiveData(null);
@@ -695,8 +723,11 @@ export async function bootApp() {
     setStatus('Finding speech...');
     showProgress(4);
 
+    const vadStarted = performance.now();
     const segments = await segmentPCM(pcm);
+    sessionTiming.vadMs = Math.round(performance.now() - vadStarted);
     setStatus('Transcribing...');
+    const asrStarted = performance.now();
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
       const result = await engine.dictate(seg.pcm, { returnTimestamps: false });
@@ -709,6 +740,7 @@ export async function bootApp() {
       }
       showProgress(Math.max(8, Math.round(((i + 1) / segments.length) * 100)));
     }
+    sessionTiming.asrMs = Math.round(performance.now() - asrStarted);
 
     setLive(false);
     finalizeSession(seconds);
@@ -725,7 +757,7 @@ export async function bootApp() {
       try {
         await engine.vadReset?.();
         const vad = createSileroVad({
-          probeFrames: (block) => /** @type {any} */ (engine).vadProbe(block),
+          probeFrames: (block) => /** @type {any} */ (engine).vadProbe(block, { stride: OFFLINE_VAD_STRIDE }),
           minSilenceMs: 500,
           maxUtteranceMs: MAX_UTTERANCE_MS,
           onSpeechEnd: (seg, t0, t1) => out.push({ pcm: seg, t0, t1 }),
