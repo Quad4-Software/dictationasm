@@ -79,8 +79,11 @@ export function createAutoEngine() {
         onProgress?.({ status: 'loading webgpu', progress: 0.05 });
         await active.load(model, onProgress);
       } catch (err) {
+        const msg = err && typeof err === 'object' && 'message' in err
+          ? String(/** @type {{ message: string }} */ (err).message)
+          : String(err);
         console.warn('WebGPU load failed, falling back to WASM', err);
-        await useWasm(model, onProgress, false);
+        await useWasm(model, onProgress, /adapter/i.test(msg));
       }
     },
 

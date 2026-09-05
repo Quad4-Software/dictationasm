@@ -1,7 +1,7 @@
 /* dictationasm service worker: offline shell, COOP/COEP isolation, auto-update */
 const APP = 'dictationasm';
 const SHELL_VERSION = 'dev';
-const ASSET_VERSION = 'v1';
+const ASSET_VERSION = 'v2';
 const SHELL_CACHE = `${APP}-shell-${SHELL_VERSION}`;
 const ASSET_CACHE = `${APP}-assets-${ASSET_VERSION}`;
 
@@ -47,8 +47,8 @@ const PRECACHE_OPTIONAL = [
   '/vendor/transformers/ort-wasm-simd-threaded.jsep.mjs',
   '/vendor/transformers/ort-wasm-simd-threaded.jsep.wasm',
   '/models/onnx/silero-vad/onnx/model.onnx',
-  '/models/onnx/moonshine-tiny-ONNX/onnx/encoder_model_quantized.onnx',
-  '/models/onnx/moonshine-tiny-ONNX/onnx/encoder_model_q4.onnx',
+  '/models/onnx/moonshine-tiny-ONNX/onnx/encoder_model.onnx',
+  '/models/onnx/moonshine-tiny-ONNX/onnx/decoder_model_merged_q4.onnx',
   '/models/onnx/moonshine-tiny-ONNX/onnx/decoder_model_merged_quantized.onnx',
 ];
 

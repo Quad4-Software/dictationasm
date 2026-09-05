@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fetch Moonshine ONNX assets for in-browser dictation.
-# WebGPU uses q4 encoder + q4 decoder. WASM uses q8 encoder + q8 decoder
-# (falls back to fp32 encoder) when a dtype is unsupported.
+# Runtime uses fp32 encoder + q4 decoder (WebGPU) or q8 decoder (WASM).
+# Quantized encoder files are kept for local experiments and future use.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

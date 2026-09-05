@@ -10,6 +10,9 @@ import { collapseRepeatLoops } from './text-sanitize.js';
 const WORKER_URL = '/js/engine/moonshine-worker.js';
 
 /**
+ * True only when a WebGPU adapter can create a device.
+ * A missing adapter is common on headless or GPU-disabled hosts. Chromium may
+ * still print "No available adapters" when requestAdapter resolves to null.
  * @returns {Promise<boolean>}
  */
 export async function probeWebGPU() {

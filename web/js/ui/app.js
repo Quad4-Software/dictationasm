@@ -308,8 +308,6 @@ export async function bootApp() {
         `${m.path}/tokenizer_config.json`,
         `${m.path}/preprocessor_config.json`,
         `${m.path}/onnx/encoder_model.onnx`,
-        `${m.path}/onnx/encoder_model_quantized.onnx`,
-        `${m.path}/onnx/encoder_model_q4.onnx`,
         `${m.path}/onnx/decoder_model_merged_q4.onnx`,
         `${m.path}/onnx/decoder_model_merged_quantized.onnx`,
       );
@@ -1468,6 +1466,9 @@ function friendlyError(err) {
   }
   if (lower.includes('memory') || lower.includes('init') || lower.includes('start the voice')) {
     return 'This device ran out of room for the voice model. Close other tabs and retry with Quick.';
+  }
+  if (lower.includes('local_files_only') || lower.includes('allowremotemodels') || lower.includes('file was not found locally')) {
+    return 'The voice model files are missing from this build. Refresh, or re-run make assets for a local server.';
   }
   if (lower.includes('too long') || lower.includes('timed out')) {
     return 'That took too long. Try a shorter clip or the Quick voice style.';

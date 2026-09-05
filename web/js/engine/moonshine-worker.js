@@ -25,17 +25,17 @@ const VAD_STATE_SIZE = 2 * 1 * 128;
 const WARMUP_SAMPLES = Math.round(SAMPLE_RATE * 0.25);
 
 /**
- * Prefer quantized weights. Cascades below fall back when a dtype is missing
- * or unsupported on the current ORT backend.
+ * Encoder stays fp32: Pages ships only encoder_model.onnx, and q8 encoders
+ * are unreliable on the WASM/CPU EP. Decoder is q4 on WebGPU and q8 on WASM
+ * (q4 decoder as a last WASM fallback when the quantized file is absent).
  */
 const DTYPE_ATTEMPTS = {
   webgpu: [
-    { encoder_model: 'q4', decoder_model_merged: 'q4' },
     { encoder_model: 'fp32', decoder_model_merged: 'q4' },
   ],
   wasm: [
-    { encoder_model: 'q8', decoder_model_merged: 'q8' },
     { encoder_model: 'fp32', decoder_model_merged: 'q8' },
+    { encoder_model: 'fp32', decoder_model_merged: 'q4' },
   ],
 };
 
