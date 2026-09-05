@@ -1,0 +1,11 @@
+{
+  "name": "dictationasm",
+  "repo": "Quad4-Software/dictationasm",
+  "live": "https://dictationasm.quad4.io",
+  "image": "ghcr.io/quad4-software/dictationasm",
+  "license": "0BSD",
+  "tagline": "in-browser Moonshine",
+  "labelColor": "0f1724",
+  "color": "e8a838",
+  "style": "flat-square"
+}
