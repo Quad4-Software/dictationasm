@@ -947,7 +947,7 @@ body {
     max-width: 100%;
     height: 100dvh;
     padding-top: calc(0.55rem + var(--safe-top));
-    padding-bottom: calc(var(--dock-h) + var(--foot-h) + 0.4rem);
+    padding-bottom: calc(0.55rem + var(--safe-bottom));
     gap: 0.55rem;
   }
 
@@ -1051,20 +1051,20 @@ body {
   }
 
   .action-dock {
-    position: fixed;
-    left: 0;
-    right: 0;
+    position: sticky;
+    left: auto;
+    right: auto;
     bottom: 0;
     top: auto;
-    z-index: 20;
-    margin: 0;
+    z-index: 12;
+    margin: 0.35rem -0.75rem -0.75rem;
     padding: var(--dock-pad-y) max(var(--dock-pad-x), var(--safe-left)) calc(var(--dock-pad-y) + var(--safe-bottom)) max(var(--dock-pad-x), var(--safe-right));
     border: 0;
     border-top: 1px solid var(--line);
-    border-radius: 0;
+    border-radius: 0 0 var(--radius) var(--radius);
     background: color-mix(in srgb, var(--panel) 94%, black);
-    box-shadow: 0 -10px 32px color-mix(in srgb, black 36%, transparent);
-    backdrop-filter: blur(18px);
+    box-shadow: 0 -8px 24px color-mix(in srgb, black 28%, transparent);
+    backdrop-filter: blur(16px);
   }
 
   .action-dock .cta-row {
@@ -1087,25 +1087,7 @@ body {
   }
 
   .site-foot {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: var(--dock-h);
-    z-index: 19;
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.1rem 0.15rem;
-    padding: 0.15rem max(0.5rem, var(--safe-left)) 0.2rem max(0.5rem, var(--safe-right));
-    font-size: 0.7rem;
-    letter-spacing: 0.02em;
-    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--paper) 88%, transparent) 40%);
-  }
-
-  .site-foot a,
-  .site-foot .site-version {
-    min-height: 1.85rem;
-    padding: 0.25rem 0.45rem;
+    display: none;
   }
 
   .panel-result {
