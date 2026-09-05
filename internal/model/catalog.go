@@ -88,7 +88,10 @@ func DefaultCatalog() Catalog {
 }
 
 // ByID returns a model or false when unknown.
-func (c Catalog) ByID(id string) (Model, bool) {
+func (c *Catalog) ByID(id string) (Model, bool) {
+	if c == nil {
+		return Model{}, false
+	}
 	for i := range c.Models {
 		if c.Models[i].ID == id {
 			return c.Models[i], true
@@ -98,7 +101,10 @@ func (c Catalog) ByID(id string) (Model, bool) {
 }
 
 // DefaultModel returns the catalog default or the first entry.
-func (c Catalog) DefaultModel() (Model, bool) {
+func (c *Catalog) DefaultModel() (Model, bool) {
+	if c == nil {
+		return Model{}, false
+	}
 	for i := range c.Models {
 		if c.Models[i].Default {
 			return c.Models[i], true
@@ -111,7 +117,10 @@ func (c Catalog) DefaultModel() (Model, bool) {
 }
 
 // IDs returns model identifiers in catalog order.
-func (c Catalog) IDs() []string {
+func (c *Catalog) IDs() []string {
+	if c == nil {
+		return nil
+	}
 	ids := make([]string, 0, len(c.Models))
 	for i := range c.Models {
 		ids = append(ids, c.Models[i].ID)

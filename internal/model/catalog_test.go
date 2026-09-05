@@ -81,7 +81,8 @@ func TestDefaultVAD(t *testing.T) {
 
 func TestByIDMissing(t *testing.T) {
 	t.Parallel()
-	_, ok := model.DefaultCatalog().ByID("nope")
+	c := model.DefaultCatalog()
+	_, ok := c.ByID("nope")
 	if ok {
 		t.Fatal("expected miss")
 	}
