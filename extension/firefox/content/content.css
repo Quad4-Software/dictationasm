@@ -1,0 +1,24 @@
+#asm-ext-toast {
+  position: fixed;
+  z-index: 2147483646;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(20px);
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #0f1724;
+  color: #f4f4f7;
+  border: 1px solid #e8a838;
+  box-shadow: 0 8px 28px rgba(0,0,0,.45);
+  font: 13px/1.35 system-ui, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+#asm-ext-toast.asm-ext-toast-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#asm-ext-toast[data-mode="error"] { border-color: #e57373; }
+#asm-ext-toast[data-mode="ok"] { border-color: #e8a838; }

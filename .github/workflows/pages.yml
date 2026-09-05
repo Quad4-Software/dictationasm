@@ -1,0 +1,104 @@
+# Pinned actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v7.0.1              3d3c42e5aac5ba805825da76410c181273ba90b1
+#   actions/configure-pages@v6.0.0       45bfe0192ca1faeb007ade9deae92b16b8254a0d
+#   actions/upload-pages-artifact@v5.0.0 fc324d3547104276b827a68afc52ff2a11cc49c9
+#   actions/deploy-pages@v5.0.1          368f82528645a54fb793d4d04e342629a3f51346
+#
+# Secure use: least privilege, SHA-pinned actions, no pull_request_target.
+# https://docs.github.com/en/actions/reference/security/secure-use
+
+name: Pages
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pages: write
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Fetch models
+        run: |
+          bash scripts/fetch-transformers.sh
+          bash scripts/fetch-vad.sh
+          # Quick model only. The Clearer build is fetched on demand from the
+          # visitor browser, Pages caps the artifact size.
+          bash -c '
+            set -euo pipefail
+            id=moonshine-tiny-ONNX
+            OUT=web/models/onnx/$id
+            HF=https://huggingface.co/onnx-community/$id/resolve/main
+            mkdir -p "$OUT/onnx"
+            for f in config.json tokenizer.json tokenizer_config.json preprocessor_config.json generation_config.json special_tokens_map.json; do
+              curl -L --fail --retry 3 -o "$OUT/$f" "$HF/$f" || rm -f "$OUT/$f"
+            done
+            curl -L --fail --retry 5 -o "$OUT/onnx/encoder_model.onnx" "$HF/onnx/encoder_model.onnx"
+            curl -L --fail --retry 5 -o "$OUT/onnx/decoder_model_merged_q4.onnx" "$HF/onnx/decoder_model_merged_q4.onnx"
+            curl -L --fail --retry 5 -o "$OUT/onnx/decoder_model_merged_quantized.onnx" "$HF/onnx/decoder_model_merged_quantized.onnx"
+          '
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: Stamp service worker shell version
+        run: |
+          SHELL_VERSION="${GITHUB_SHA::12}"
+          sed -i "s/const SHELL_VERSION = '[^']*'/const SHELL_VERSION = '${SHELL_VERSION}'/" web/sw.js
+          grep -q "const SHELL_VERSION = '${SHELL_VERSION}'" web/sw.js
+
+      - name: Build browser extensions
+        run: make extensions
+
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: web
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

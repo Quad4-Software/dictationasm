@@ -1,0 +1,59 @@
+# Coolify Docker Compose pack for dictationasm.
+# Compose is the source of truth: https://coolify.io/docs/knowledge-base/docker/compose
+#
+# Assign a domain in Coolify with container port 8080, e.g. https://example.com:8080
+# Do not publish host ports; Coolify proxy routes into the stack network.
+
+name: dictationasm
+
+services:
+  dictationasm:
+    image: ${IMAGE:-ghcr.io/quad4-software/dictationasm:${VERSION:-0.1.0}}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: "${VERSION:-0.1.0}"
+        REVISION: ${SOURCE_COMMIT:-unknown}
+        CREATED: ${CREATED:-unknown}
+    restart: unless-stopped
+    init: true
+    expose:
+      - "8080"
+    environment:
+      # Coolify magic URL for proxy routing to container port 8080
+      - SERVICE_URL_DICTATIONASM_8080
+      - DICTATIONASM_ADDR=${DICTATIONASM_ADDR:-:8080}
+      - DICTATIONASM_WEB=${DICTATIONASM_WEB:-/app/web}
+      - DICTATIONASM_READ_TIMEOUT=${DICTATIONASM_READ_TIMEOUT:-15s}
+      - DICTATIONASM_WRITE_TIMEOUT=${DICTATIONASM_WRITE_TIMEOUT:-60s}
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777,uid=65532,gid=65532
+    user: "65532:65532"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    ulimits:
+      nproc: 256
+      nofile:
+        soft: 1024
+        hard: 2048
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+          pids: 256
+        reservations:
+          cpus: "0.10"
+          memory: 128M
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s

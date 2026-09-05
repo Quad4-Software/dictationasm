@@ -1,0 +1,203 @@
+# Pinned actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v7.0.1                 3d3c42e5aac5ba805825da76410c181273ba90b1
+#   actions/setup-go@v7.0.0                 b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+#   actions/setup-node@v7.0.0               820762786026740c76f36085b0efc47a31fe5020
+#   golangci/golangci-lint-action@v9.3.0    ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a
+#   aquasecurity/trivy-action@v0.36.0       ed142fd0673e97e23eac54620cfb913e5ce36c25
+#
+# Secure use: least-privilege GITHUB_TOKEN, pin actions to full commit SHAs,
+# pull_request (not pull_request_target), no untrusted checkout with secrets.
+# https://docs.github.com/en/actions/reference/security/secure-use
+
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: Go test
+        shell: bash
+        run: go test ./...
+
+      - name: JS test
+        shell: bash
+        run: |
+          node --test \
+            web/js/audio/audio.test.mjs \
+            web/js/audio/vad.test.mjs \
+            web/js/engine/text-sanitize.test.mjs \
+            web/js/engine/foam-regression.test.mjs \
+            web/js/export/formats.test.mjs
+
+      - name: Build server
+        shell: bash
+        env:
+          APP: dictationasm
+        run: |
+          set -euo pipefail
+          mkdir -p bin
+          EXT=""
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            EXT=".exe"
+          fi
+          go build -trimpath -ldflags "-s -w" -o "bin/${APP}${EXT}" "./cmd/${APP}"
+
+      - name: Smoke server
+        shell: bash
+        env:
+          APP: dictationasm
+        run: |
+          set -euo pipefail
+          EXT=""
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            EXT=".exe"
+          fi
+          BIN="./bin/${APP}${EXT}"
+          ADDR="127.0.0.1:18080"
+          "$BIN" -web web -addr "$ADDR" &
+          PID=$!
+          cleanup() {
+            kill "$PID" 2>/dev/null || true
+            wait "$PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          ok=0
+          for _ in $(seq 1 40); do
+            if curl -fsS "http://${ADDR}/api/health" >/dev/null 2>&1; then
+              ok=1
+              break
+            fi
+            sleep 0.5
+          done
+          if [[ "$ok" != "1" ]]; then
+            echo "server failed to become ready on ${ADDR}" >&2
+            exit 1
+          fi
+          curl -fsS "http://${ADDR}/api/health"
+          echo
+          curl -fsS "http://${ADDR}/api/version"
+          echo
+          code=$(curl -fsS -o /dev/null -w "%{http_code}" "http://${ADDR}/")
+          test "$code" = "200"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.13.2
+          args: ./...
+
+  vuln:
+    name: Vulnerability
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+
+      - name: govulncheck
+        run: govulncheck ./...
+
+  trivy:
+    name: Trivy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
+    timeout-minutes: 20
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Filesystem scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+          # Intentional public CRX update signing key for site-hosted extensions.
+          skip-files: extension/signing.pem

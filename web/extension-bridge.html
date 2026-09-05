@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="/icons/icon-192.png">
+  <title>dictationasm bridge</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font: 14px/1.45 system-ui, sans-serif;
+      background: #0f1724;
+      color: #f4f4f7;
+    }
+    .card {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      max-width: 28rem;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    img { width: 64px; height: 64px; border-radius: 14px; }
+    h1 { margin: 0; font-size: 1.05rem; font-weight: 650; }
+    #status { margin: 0; opacity: 0.75; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="/icons/icon-192.png" alt="" width="64" height="64">
+    <h1>dictationasm bridge</h1>
+    <p id="status">Waiting for extension…</p>
+  </div>
+  <script type="module" src="/js/extension-bridge.js"></script>
+</body>
+</html>

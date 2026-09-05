@@ -1,0 +1,76 @@
+# Pinned actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v7.0.1                 3d3c42e5aac5ba805825da76410c181273ba90b1
+#   actions/setup-go@v7.0.0                 b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+#   actions/setup-node@v7.0.0               820762786026740c76f36085b0efc47a31fe5020
+#   actions/upload-artifact@v7.0.1          043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+#
+# Secure use: least-privilege GITHUB_TOKEN, pin actions to full commit SHAs,
+# pull_request (not pull_request_target), no untrusted checkout with secrets.
+# https://docs.github.com/en/actions/reference/security/secure-use
+
+name: Screenshots
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "web/**"
+      - "scripts/screenshot/**"
+      - "scripts/screenshot.sh"
+      - ".github/workflows/screenshots.yml"
+
+concurrency:
+  group: screenshots-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    name: Capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: scripts/screenshot/package-lock.json
+
+      - name: Build server
+        run: make build
+
+      - name: Install screenshot deps
+        working-directory: scripts/screenshot
+        run: npm ci --no-fund --no-audit
+
+      - name: Install Chromium for Playwright
+        working-directory: scripts/screenshot
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture screenshots
+        run: node scripts/screenshot/capture.mjs
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: screenshots
+          path: docs/screenshots/*.png
+          if-no-files-found: error

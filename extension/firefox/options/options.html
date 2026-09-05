@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dictationasm settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/icon-48.png" alt="" width="32" height="32">
+    <div>
+      <h1>dictationasm settings</h1>
+      <p class="sub">Extension site, bridge, and updates</p>
+    </div>
+  </header>
+  <main>
+    <section>
+      <h2>Site</h2>
+      <p class="hint">Use the official site, a fork, or your own deploy. Update checks use this origin. Bridge needs the same origin in the package externally_connectable list (rebuild with SITE_ORIGIN=... for forks).</p>
+      <label>Site origin
+        <input id="site" type="url" spellcheck="false" placeholder="https://dictationasm.quad4.io">
+      </label>
+      <label>Bridge origin
+        <input id="bridge" type="url" spellcheck="false" placeholder="https://dictationasm.quad4.io">
+      </label>
+      <label class="check"><input id="sync-bridge" type="checkbox" checked> Keep bridge origin matched to site origin</label>
+    </section>
+    <section>
+      <h2>Updates</h2>
+      <p class="hint">Packed CRX/XPI installs can auto-update from <code>/build/</code> on the site. Unpacked installs use Check for updates.</p>
+      <label class="check"><input id="auto-update" type="checkbox" checked> Check for updates daily</label>
+      <div class="row">
+        <button id="btn-check" type="button">Check for updates</button>
+        <button id="btn-open-build" type="button" class="secondary">Open /build/</button>
+      </div>
+      <p id="update-status" class="status" role="status"></p>
+      <p class="meta">Installed <span id="local-version">-</span> · Site <span id="remote-version">-</span></p>
+    </section>
+    <section>
+      <h2>Save</h2>
+      <div class="row">
+        <button id="btn-save" type="button">Save settings</button>
+        <button id="btn-reset" type="button" class="secondary">Reset to defaults</button>
+      </div>
+      <p id="save-status" class="status" role="status"></p>
+    </section>
+  </main>
+  <script src="options.js" type="module"></script>
+</body>
+</html>

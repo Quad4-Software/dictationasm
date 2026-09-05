@@ -1,0 +1,35 @@
+{
+  "models": [
+    {
+      "id": "moonshine-tiny",
+      "label": "Quick",
+      "engine": "auto",
+      "onnx_id": "moonshine-tiny-ONNX",
+      "path": "/models/onnx/moonshine-tiny-ONNX",
+      "language": "en",
+      "size_hint_mb": 76,
+      "speed_rank": 5,
+      "accuracy_rank": 3,
+      "default": true,
+      "notes": "Fastest. WebGPU when available, WASM fallback."
+    },
+    {
+      "id": "moonshine-base",
+      "label": "Clearer",
+      "engine": "auto",
+      "onnx_id": "moonshine-base-ONNX",
+      "path": "/models/onnx/moonshine-base-ONNX",
+      "language": "en",
+      "size_hint_mb": 154,
+      "speed_rank": 3,
+      "accuracy_rank": 5,
+      "notes": "Moonshine Base. Clearer Small/Streaming option."
+    }
+  ],
+  "vad": {
+    "id": "silero-vad",
+    "onnx_id": "silero-vad",
+    "path": "/models/onnx/silero-vad",
+    "size_hint_mb": 2.2
+  }
+}

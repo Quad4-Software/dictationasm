@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dictationasm</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/icon-48.png" alt="" width="28" height="28">
+    <div class="titles">
+      <strong>dictationasm</strong>
+      <span class="sub">speech to text</span>
+    </div>
+  </header>
+  <main>
+    <p class="hint">Recording uses the bridge tab mic (keep it open and allow microphone).</p>
+    <label>Model
+      <select id="model">
+        <option value="">Default (Quick)</option>
+      </select>
+    </label>
+    <div class="row3">
+      <button id="btn-record" type="button">Record</button>
+      <button id="btn-stop" type="button" class="secondary" disabled>Stop &amp; dictate</button>
+      <button id="btn-cancel" type="button" class="secondary" disabled>Cancel</button>
+    </div>
+    <textarea id="output" rows="8" readonly placeholder="Transcript appears here"></textarea>
+    <div class="row">
+      <button id="btn-copy" type="button" class="secondary">Copy</button>
+      <button id="btn-open" type="button" class="secondary">Open full app</button>
+    </div>
+    <div class="row">
+      <button id="btn-bridge" type="button" class="ghost">Connect bridge</button>
+      <button id="btn-settings" type="button" class="ghost">Settings</button>
+    </div>
+    <p class="hint">Site and update source are in Settings (forks welcome).</p>
+    <div class="meter" id="meter"><span></span></div>
+    <p id="status" class="status" role="status"></p>
+  </main>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Require review for workflow and Actions config changes.
+# Mitigates silent CI poison / tag-move follow-on after a compromised PR.
+.github/workflows/ @Sudo-Ivan
+.github/dependabot.yml @Sudo-Ivan
+SECURITY.md @Sudo-Ivan

@@ -1,0 +1,89 @@
+# Pinned actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v7.0.1                   3d3c42e5aac5ba805825da76410c181273ba90b1
+#
+# Secure use: least-privilege GITHUB_TOKEN, pin actions to full commit SHAs,
+# untrusted/event input via env (not inline shell).
+# https://docs.github.com/en/actions/reference/security/secure-use
+
+name: Badges
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "badges/theme.json"
+      - "internal/version/**"
+      - "go.mod"
+      - "scripts/gen-badges.sh"
+      - ".github/workflows/badges.yml"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: badges-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    name: Refresh endpoint badges
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: master
+
+      - name: Resolve version
+        id: ver
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ "$EVENT_NAME" = "release" ]; then
+            RAW="$RELEASE_TAG"
+          else
+            RAW="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+          fi
+          if [ -z "$RAW" ]; then
+            RAW="$(sed -n 's/^var Version = \"\(.*\)\"/\1/p' internal/version/version.go | head -1)"
+          fi
+          VER="${RAW#v}"
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate badges
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: bash scripts/gen-badges.sh
+
+      - name: Publish badge endpoints
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet -- badges; then
+            echo "badges unchanged"
+            exit 0
+          fi
+          WORK="$(pwd)"
+          PUB="$(mktemp -d)"
+          cp -a badges/. "$PUB/"
+          cd "$PUB"
+          git init -q
+          git checkout -q -b badges
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -qm "chore: refresh dynamic shields badges"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:badges"
+          cd "$WORK"
+          rm -rf "$PUB"

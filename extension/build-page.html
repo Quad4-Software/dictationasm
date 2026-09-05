@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>__APP__ extensions</title>
+  <link rel="icon" href="/icons/icon-192.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --paper: #0f1724;
+      --ink: #f4f4f7;
+      --accent: #e8a838;
+      --muted: color-mix(in srgb, var(--ink) 62%, transparent);
+      --line: color-mix(in srgb, var(--ink) 16%, transparent);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font: 15px/1.5 system-ui, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+    }
+    main {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 3rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+    header {
+      display: grid;
+      gap: 0.75rem;
+      justify-items: start;
+    }
+    header img { width: 56px; height: 56px; border-radius: 12px; }
+    h1 { margin: 0; font-size: 1.6rem; }
+    .sub { color: var(--muted); margin: 0; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1rem 1.1rem;
+      display: grid;
+      gap: 0.65rem;
+    }
+    h2 { margin: 0; font-size: 1.05rem; }
+    p { margin: 0; color: var(--muted); }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.55rem 0.9rem;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 600;
+      background: var(--accent);
+      color: #0f1724;
+    }
+    a.btn.secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    ol { margin: 0; padding-left: 1.2rem; color: var(--muted); }
+    li { margin: 0.25rem 0; }
+    footer { color: var(--muted); font-size: 0.9rem; }
+    footer a { color: var(--accent); }
+    code { font-size: 0.92em; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="/icons/icon-192.png" alt="" width="56" height="56">
+      <h1>__APP__ extensions</h1>
+      <p class="sub">Offline dictation with on-device Moonshine. Version __VERSION__.</p>
+    </header>
+
+    <section class="card">
+      <h2>Chrome / Chromium</h2>
+      <p>Download the CRX and drag it onto <code>chrome://extensions</code> with Developer mode enabled. Or unpack the ZIP and Load unpacked.</p>
+      <div class="actions">
+        <a class="btn" href="__APP__-chrome.crx" download>Download CRX</a>
+        <a class="btn secondary" href="__APP__-chrome.zip" download>Download ZIP</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Firefox</h2>
+      <p>Temporary install: open <code>about:debugging#/runtime/this-firefox</code>, choose Load Temporary Add-on, and pick the XPI. For permanent install, use a Mozilla-signed build from a release when available.</p>
+      <div class="actions">
+        <a class="btn" href="__APP__-firefox.xpi" download>Download XPI</a>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <h2>Updates</h2>
+      <p>Packed installs can auto-check <code>/build/updates.xml</code> (Chrome) and <code>/build/updates.json</code> (Firefox). In the extension, open Settings to point at a fork or self-hosted site and use Check for updates.</p>
+    </section>
+    <section class="card">
+      <h2>After install</h2>
+      <ol>
+        <li>Open the extension popup and click Connect bridge tab.</li>
+        <li>Keep the bridge tab open while translating, speaking, or recording.</li>
+        <li>Allow microphone access on the bridge tab for dictationasm.</li>
+      </ol>
+    </section>
+
+    <footer>
+      <a href="/">Back to __APP__</a>
+      · <a href="manifest.json">build manifest</a>
+      · <a href="SHA256SUMS">SHA256SUMS</a>
+    </footer>
+  </main>
+</body>
+</html>

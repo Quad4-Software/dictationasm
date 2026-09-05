@@ -1,0 +1,149 @@
+version: 2
+
+project_name: dictationasm
+
+builds:
+  - id: dictationasm
+    main: ./cmd/dictationasm
+    binary: dictationasm
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+      - -buildvcs=false
+    ldflags:
+      - -s -w -X github.com/Quad4-Software/dictationasm/internal/version.Version={{.Version}}
+    goos:
+      - linux
+      - windows
+      - darwin
+      - freebsd
+      - openbsd
+      - netbsd
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - "386"
+      - riscv64
+      - ppc64le
+      - s390x
+    goarm:
+      - "7"
+    ignore:
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: riscv64
+      - goos: darwin
+        goarch: ppc64le
+      - goos: darwin
+        goarch: s390x
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: riscv64
+      - goos: windows
+        goarch: ppc64le
+      - goos: windows
+        goarch: s390x
+      - goos: freebsd
+        goarch: riscv64
+      - goos: freebsd
+        goarch: ppc64le
+      - goos: freebsd
+        goarch: s390x
+      - goos: openbsd
+        goarch: ppc64le
+      - goos: openbsd
+        goarch: s390x
+      - goos: netbsd
+        goarch: riscv64
+      - goos: netbsd
+        goarch: ppc64le
+      - goos: netbsd
+        goarch: s390x
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE*
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+
+sboms:
+  - id: project
+    artifacts: any
+    documents:
+      - "{{ .ProjectName }}-{{ .Version }}.cdx.json"
+    cmd: syft
+    args:
+      - "dir:.."
+      - "--source-name={{ .ProjectName }}"
+      - "--source-version={{ .Version }}"
+      - "-o"
+      - "cyclonedx-json=$document"
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - "sign-blob"
+      - "--yes"
+      - "--bundle=${signature}"
+      - "${artifact}"
+    artifacts: checksum
+    output: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+release:
+  github:
+    owner: Quad4-Software
+    name: dictationasm
+  draft: false
+  prerelease: auto
+  name_template: "dictationasm {{.Tag}}"
+  extra_files:
+    - glob: ./web/build/*.crx
+    - glob: ./web/build/*.xpi
+    - glob: ./web/build/*.zip
+    - glob: ./web/build/SHA256SUMS
+    - glob: ./web/build/manifest.json
+  footer: |
+    ## Docker
+
+    ```bash
+    docker pull ghcr.io/quad4-software/dictationasm:{{.Tag}}
+    docker run --rm -p 8080:8080 ghcr.io/quad4-software/dictationasm:{{.Tag}}
+    ```
+
+    Multi-arch images: `linux/amd64`, `linux/arm64`.
+
+    ## Binary
+
+    Unpack the archive for your OS/arch, then point `-web` at a `web/` tree with models
+    (`make assets` after cloning the repo), or use the container image for a full offline stack.
+
+    ## Extensions
+
+    Browser builds are attached to this release and also published at
+    https://dictationasm.quad4.io/build/
+
+    - `dictationasm-chrome.crx` / `dictationasm-chrome.zip`
+    - `dictationasm-firefox.xpi`
